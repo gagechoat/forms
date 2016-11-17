@@ -6,10 +6,16 @@ import {
   FormArray,
   FormBuilder
 } from '@angular/forms';
+import { Observable } from "rxjs/Rx";
 
 @Component({
   selector: 'data-driven',
-  templateUrl: 'data-driven.component.html'
+  templateUrl: 'data-driven.component.html',
+  styles: [`
+    input.ng-invalid {
+      border: 1px solid #d99;
+    }
+  `]
 })
 export class DataDrivenComponent {
   myForm: FormGroup;
@@ -38,7 +44,7 @@ export class DataDrivenComponent {
 
     this.myForm = formBuilder.group({
       'userData': formBuilder.group({
-        'username': ['Lola', Validators.required],
+        'username': ['Lola', [Validators.required, this.exampleValidator]],
         'email': ['', [
           Validators.required,
           Validators.pattern("[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")
@@ -47,9 +53,15 @@ export class DataDrivenComponent {
       'password': ['', Validators.required],
       'gender': ['other'],
       'hobbies': formBuilder.array([
-        ['Cooking', Validators.required]
+        ['Cooking', Validators.required, this.asyncExampleValidator]
       ])
     });
+
+    this.myForm.statusChanges.subscribe(
+      (data: any) => {
+        console.log(data);
+      }
+    );
   }
 
   onSubmit() {
@@ -57,6 +69,28 @@ export class DataDrivenComponent {
   }
 
   onAddHobby() {
-    (<FormArray>this.myForm.get('hobbies')).push(new FormControl('', Validators.required));
+    (<FormArray>this.myForm.get('hobbies')).push(new FormControl('', Validators.required, this.asyncExampleValidator));
+  }
+
+  exampleValidator(control: FormControl): {[s: string]: boolean} {
+    if (control.value === 'Example') {
+      return {example: true};
+    }
+    return null;
+  }
+
+  asyncExampleValidator(control: FormControl): Promise<any> | Observable<any> {
+    const promise = new Promise<any>(
+      (resolve, reject) => {
+        setTimeout(() => {
+          if (control.value === 'Example') {
+            resolve({'invalid': true});
+          } else {
+            resolve(null);
+          }
+        }, 1500);
+      }
+    );
+    return promise
   }
 }
